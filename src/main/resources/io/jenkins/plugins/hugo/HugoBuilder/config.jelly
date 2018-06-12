@@ -5,5 +5,14 @@
       <f:entry title="${%Hugo Home}" field="hugoHome">
           <f:textbox />
       </f:entry>
+      <f:entry title="${%Base Url}" field="baseUrl">
+          <f:textbox />
+      </f:entry>
+      <f:entry title="${%Destination}" field="destination">
+          <f:textbox />
+      </f:entry>
+      <f:entry title="${%Verbose}">
+          <f:checkbox name="verbose" field="verbose"/>
+      </f:entry>
   </f:advanced>
 </j:jelly>

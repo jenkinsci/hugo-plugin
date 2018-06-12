@@ -13,6 +13,7 @@ import hudson.model.AbstractProject;
 import hudson.model.FreeStyleProject;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.plugins.git.Branch;
 import hudson.security.ACL;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
@@ -34,12 +35,14 @@ import java.io.PrintStream;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
  * @author suren
  */
-public class HugoGitSubmodulePublisher extends Recorder implements SimpleBuildStep {
+public class HugoGitPublisher extends Recorder implements SimpleBuildStep {
+    private String targetUrl;
     private String publishDir;
     private String publishBranch;
     private String credentialsId;
@@ -52,105 +55,78 @@ public class HugoGitSubmodulePublisher extends Recorder implements SimpleBuildSt
     private String commitLog;
 
     @DataBoundConstructor
-    public HugoGitSubmodulePublisher() {}
+    public HugoGitPublisher(String targetUrl) {
+        this.targetUrl = targetUrl;
+    }
 
     @Override
     public void perform(@Nonnull Run<?, ?> run, @Nonnull FilePath workspace,
                         @Nonnull Launcher launcher, @Nonnull TaskListener listener)
             throws InterruptedException, IOException {
-        // check whether has submodule
+        FilePath tmpPath = workspace.child("." + publishDir);
+
         Git git = new Git(listener, null);
-        GitClient client = git.in(workspace).getClient();
+        GitClient client = git.in(tmpPath).getClient();
         PrintStream logger = listener.getLogger();
 
-        boolean hasGitModules = client.hasGitModules();
-        if(!hasGitModules) {
-            listener.getLogger().println("No git modules found.");
-            return;
+        setCredential(client, credentialsId, logger);
+
+        client.init();
+        client.clone_().url(targetUrl).execute();
+        client.checkoutBranch(publishBranch, "origin/" + publishBranch);
+
+        workspace.child(publishDir).copyRecursiveTo(tmpPath);
+
+        if(getAuthorName() != null) {
+            client.setAuthor(getAuthorName(), getAuthorEmail());
         }
+
+        if(getCommitterName() != null) {
+            client.setCommitter(getCommitterName(), getCommitterEmail());
+        }
+
+        client.add(".");
+        client.commit(commitLog);
 
         logger.println("Prepare to commit and push");
 
-        FilePath publishPath = workspace.child(publishDir);
-
-        client = git.in(publishPath).getClient();
-        if(!client.hasGitRepo())
-        {
-            listener.error("Submodule has not init.");
-            return;
-        }
-
-        String branch = publishBranch;
-        logger.println("create new branch");
-
-        client.checkout().branch(branch).deleteBranchIfExist(true).ref("HEAD").execute();
-
-        client.rebase().setUpstream("origin/" + branch).execute();
-
-        logger.println("prepare to execute hugo");
-        copyArtifact(workspace, publishPath);
-
-        logger.println("remote: " + publishPath.getRemote());
-        logger.println("add everything.");
-
-        String url = client.getRemoteUrl("origin");
-
-        if(credentialsId != null)
-        {
-            StandardUsernameCredentials credential = getCredential(logger);
-            if(credential != null)
-            {
-                client.setCredentials(credential);
-
-                if(getAuthorName() != null)
-                {
-                    client.setAuthor(getAuthorName(), getAuthorEmail());
-                }
-
-                if(getCommitterName() != null)
-                {
-                    client.setCommitter(getCommitterName(), getCommitterEmail());
-                }
-
-                logger.println("already set credential : " + credential.getUsername());
-            }
-            else
-            {
-                logger.println("can not found credential");
-            }
-        }
-        else
-        {
-            logger.println("No credential provide.");
-        }
-
-        logger.println("remote is " + url);
-
-        client.add(".");
-        client.commit(getCommitLog());
-
-        try
-        {
-
-            client.push().to(new URIish(url)).ref(branch).force(true).execute();
-        }
-        catch (URISyntaxException e)
-        {
+        try {
+            client.push().to(new URIish(targetUrl)).ref(publishBranch).force(true).execute();
+        } catch (URISyntaxException e) {
             e.printStackTrace();
         }
     }
 
-    /**
-     * Copy artifact from a temp directory to real path, then clean
-     * @param tempPath temp public path
-     * @param publishPath real public path
-     * @throws IOException
-     * @throws InterruptedException
-     */
-    private void copyArtifact(FilePath tempPath, FilePath publishPath) throws IOException, InterruptedException {
-        FilePath tempPublic = tempPath.child(HugoBuilder.TEMP_PUBLIC);
-        tempPublic.copyRecursiveTo(publishPath);
-        tempPublic.deleteRecursive();
+    private void setCredential(GitClient client, String credentialId, PrintStream logger) {
+        if(credentialId == null || "".equals(credentialId.trim())) {
+            logger.println("No credential provide.");
+            return;
+        }
+
+        StandardUsernameCredentials credential = getCredential(logger);
+        if(credential != null) {
+            client.setCredentials(credential);
+        } else {
+            logger.println(String.format("Can not found credential by id [%s].", credentialId));
+        }
+    }
+
+    private void branchSwitch(GitClient client, String targetBranch, PrintStream logger) throws InterruptedException {
+        boolean targetBranchExist = false;
+        Set<Branch> branches = client.getBranches();
+        if(branches != null) {
+            targetBranchExist = branches.stream().anyMatch((branch) -> branch.getName().equals(targetBranch));
+        }
+
+        if(!targetBranchExist) {
+            logger.println(String.format("Target branch [%s] don't need to create.", targetBranch));
+
+            client.branch(targetBranch);
+        }
+
+        client.checkout(targetBranch);
+
+        logger.println(String.format("Already switch to branch [%s].", targetBranch));
     }
 
     private StandardUsernameCredentials getCredential(PrintStream logger) {
@@ -170,6 +146,10 @@ public class HugoGitSubmodulePublisher extends Recorder implements SimpleBuildSt
         }
 
         return null;
+    }
+
+    public String getTargetUrl() {
+        return targetUrl;
     }
 
     public String getPublishDir()
@@ -266,7 +246,7 @@ public class HugoGitSubmodulePublisher extends Recorder implements SimpleBuildSt
     }
 
     @Extension
-    @Symbol("hugoGitSubmodulePublsh")
+    @Symbol("hugoGitPublsh")
     public static final class DescriptorImpl extends BuildStepDescriptor<Publisher>
     {
         public ListBoxModel doFillCredentialsIdItems() {
@@ -289,7 +269,7 @@ public class HugoGitSubmodulePublisher extends Recorder implements SimpleBuildSt
         @Override
         public String getDisplayName()
         {
-            return Messages.hugo_publisher_git_submodule();
+            return Messages.hugo_publisher_git();
         }
     }
 }

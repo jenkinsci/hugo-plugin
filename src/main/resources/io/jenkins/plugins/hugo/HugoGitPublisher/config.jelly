@@ -1,6 +1,9 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
   xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
+  <f:entry title="${%Target Url}" field="targetUrl">
+      <f:textbox />
+  </f:entry>
   <f:entry title="${%Publish Directory}" field="publishDir">
       <f:textbox default="public" />
   </f:entry>
@@ -11,18 +14,18 @@
     <c:select/>
   </f:entry>
   <f:advanced>
-    <f:entry title="${%Author Name}" field="authorName">
-      <f:textbox />
-    </f:entry>
-    <f:entry title="${%Author Email}" field="authorEmail">
-      <f:textbox />
-    </f:entry>
-    <f:entry title="${%Committer Name}" field="committerName">
-      <f:textbox default="suren" />
-    </f:entry>
-    <f:entry title="${%Committer Email}" field="committerEmail">
-      <f:textbox default="zxjlwt@126.com" />
-    </f:entry>
+      <f:entry title="${%Author Name}" field="authorName">
+          <f:textbox />
+      </f:entry>
+      <f:entry title="${%Author Email}" field="authorEmail">
+          <f:textbox />
+      </f:entry>
+      <f:entry title="${%Committer Name}" field="committerName">
+          <f:textbox default="suren" />
+      </f:entry>
+      <f:entry title="${%Committer Email}" field="committerEmail">
+          <f:textbox default="zxjlwt@126.com" />
+      </f:entry>
       <f:entry title="${%Commit Log}" field="commitLog">
           <f:textbox default="Auto commit by hugo-plugin." />
       </f:entry>
