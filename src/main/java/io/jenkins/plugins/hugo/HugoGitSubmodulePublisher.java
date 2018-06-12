@@ -15,6 +15,7 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.security.ACL;
 import hudson.tasks.BuildStepDescriptor;
+import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
 import hudson.util.ListBoxModel;
@@ -154,7 +155,7 @@ public class HugoGitSubmodulePublisher extends Recorder implements SimpleBuildSt
 
     private StandardUsernameCredentials getCredential(PrintStream logger) {
         List<StandardUsernameCredentials> allCredentials = CredentialsProvider.lookupCredentials
-                (StandardUsernameCredentials.class, Jenkins.get(), ACL.SYSTEM, new ArrayList<>());
+                (StandardUsernameCredentials.class, Jenkins.getActiveInstance(), ACL.SYSTEM, new ArrayList<>());
 
         Credentials credential = CredentialsMatchers.firstOrNull(
                 allCredentials, CredentialsMatchers.withId(getCredentialsId()));
@@ -259,12 +260,17 @@ public class HugoGitSubmodulePublisher extends Recorder implements SimpleBuildSt
         this.commitLog = commitLog;
     }
 
+    @Override
+    public BuildStepMonitor getRequiredMonitorService() {
+        return BuildStepMonitor.BUILD;
+    }
+
     @Extension
     @Symbol("hugoGitSubmodulePublsh")
     public static final class DescriptorImpl extends BuildStepDescriptor<Publisher>
     {
         public ListBoxModel doFillCredentialsIdItems() {
-            FreeStyleProject project = new FreeStyleProject(Jenkins.get(),"fake-" + UUID.randomUUID().toString());
+            FreeStyleProject project = new FreeStyleProject(Jenkins.getActiveInstance(),"fake-" + UUID.randomUUID().toString());
 
             return new StandardListBoxModel().includeEmptyValue()
                     .includeMatchingAs(ACL.SYSTEM, project,
