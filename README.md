@@ -9,3 +9,11 @@
 # Docker Agent
 
 If you have a Docker environment, you can use [hugo-jnlp-agent](https://github.com/LinuxSuRen/hugo-jnlp-agent) to build your Hugo site.
+
+# Pipeline
+
+```
+hugo baseUrl: '', destination: '', hugoHome: '/usr/local/bin/'
+hugo baseUrl: 'https://surenpi.gitee.io/blog', destination: 'gitee', hugoHome: '/usr/local/bin/'
+
+```
