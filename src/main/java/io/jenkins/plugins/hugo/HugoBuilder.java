@@ -11,6 +11,7 @@ import hudson.model.TaskListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import jenkins.tasks.SimpleBuildStep;
+import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -39,7 +40,25 @@ public class HugoBuilder extends Builder implements SimpleBuildStep
                         @Nonnull Launcher launcher, @Nonnull TaskListener listener)
             throws InterruptedException, IOException
     {
-        hugoBuild(run, launcher, listener, workspace);
+        if(hugoVersion(run, launcher, listener, workspace) == 0) {
+            hugoBuild(run, launcher, listener, workspace);
+        }
+    }
+
+    private int hugoVersion(@Nonnull Run<?, ?> run, Launcher launcher,
+                            TaskListener listener, @Nonnull FilePath workspace) throws IOException, InterruptedException {
+        PrintStream logger = listener.getLogger();
+        EnvVars env = run.getEnvironment(listener);
+
+        String hugoCmd = getHugoHome() + "hugo version";
+
+        int exitCode = launcher.launch().pwd(workspace)
+                .cmdAsSingleString(hugoCmd).envs(env).stdout(logger).stderr(logger).start().join();
+        if(exitCode != 0) {
+            listener.fatalError("Hugo version error, exit code: " + exitCode);
+            run.setResult(Result.FAILURE);
+        }
+        return exitCode;
     }
 
     /**
@@ -50,8 +69,10 @@ public class HugoBuilder extends Builder implements SimpleBuildStep
      * @param workspace Job Workspace
      * @throws IOException In case of io error
      * @throws InterruptedException In case of job running be interrupt
+     * @return exitCode
      */
-    private void hugoBuild(@Nonnull Run<?, ?> run, Launcher launcher, TaskListener listener, @Nonnull FilePath workspace)
+    private int hugoBuild(@Nonnull Run<?, ?> run, Launcher launcher,
+                          TaskListener listener, @Nonnull FilePath workspace)
             throws IOException, InterruptedException {
         PrintStream logger = listener.getLogger();
         EnvVars env = run.getEnvironment(listener);
@@ -64,16 +85,11 @@ public class HugoBuilder extends Builder implements SimpleBuildStep
             listener.fatalError("Hugo build error, exit code: " + exitCode);
             run.setResult(Result.FAILURE);
         }
+        return exitCode;
     }
 
     private String buildCmd() {
-        String hugoCmd;
-        if(getHugoHome() == null || "".equals(getHugoHome().trim())) {
-            hugoCmd = "hugo";
-        } else {
-            hugoCmd = getHugoHome() + "hugo";
-        }
-
+        String hugoCmd = getHugoHome() + "hugo";
         if(destination == null || "".equals(destination.trim())) {
             hugoCmd += " --destination " + HugoBuilder.TEMP_PUBLIC;
         } else {
@@ -93,12 +109,23 @@ public class HugoBuilder extends Builder implements SimpleBuildStep
 
     public String getHugoHome()
     {
+        if(StringUtils.isBlank(hugoHome)) {
+            return "";
+        }
         return hugoHome;
     }
 
     @DataBoundSetter
     public void setHugoHome(String hugoHome)
     {
+        if(!StringUtils.isBlank(hugoHome)) {
+            hugoHome = hugoHome.trim();
+            if(!hugoHome.endsWith("/")) {
+                hugoHome = hugoHome + "/";
+            }
+        } else {
+            hugoHome = "";
+        }
         this.hugoHome = hugoHome;
     }
 
