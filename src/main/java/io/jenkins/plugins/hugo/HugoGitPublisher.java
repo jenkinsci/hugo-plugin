@@ -11,6 +11,7 @@ import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.AbstractProject;
 import hudson.model.FreeStyleProject;
+import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.plugins.git.Branch;
@@ -94,6 +95,7 @@ public class HugoGitPublisher extends Recorder implements SimpleBuildStep {
             client.push().to(new URIish(targetUrl)).ref(publishBranch).force(true).execute();
         } catch (URISyntaxException e) {
             e.printStackTrace();
+            run.setResult(Result.FAILURE);
         }
     }
 
@@ -246,7 +248,7 @@ public class HugoGitPublisher extends Recorder implements SimpleBuildStep {
     }
 
     @Extension
-    @Symbol("hugoGitPublsh")
+    @Symbol("hugoGitPublish")
     public static final class DescriptorImpl extends BuildStepDescriptor<Publisher>
     {
         public ListBoxModel doFillCredentialsIdItems() {
