@@ -5,6 +5,7 @@ import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.AbstractProject;
+import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.tasks.BuildStepDescriptor;
@@ -61,6 +62,7 @@ public class HugoBuilder extends Builder implements SimpleBuildStep
                 .cmdAsSingleString(hugoCmd).envs(env).stdout(logger).stderr(logger).start().join();
         if(exitCode != 0) {
             listener.fatalError("Hugo build error, exit code: " + exitCode);
+            run.setResult(Result.FAILURE);
         }
     }
 
