@@ -9,6 +9,8 @@ import hudson.model.FreeStyleProject;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.plugins.git.extensions.impl.SubmoduleOption;
+import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -23,6 +25,14 @@ public class HugoBuildTest
 
     @Rule
     public JenkinsRule rule = new JenkinsRule();
+
+    @Test
+    public void logs() throws Exception {
+        WorkflowJob p = rule.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition("node{hugo}"));
+
+        rule.assertBuildStatusSuccess(p.scheduleBuild2(0));
+    }
 
     @Test
     @Ignore

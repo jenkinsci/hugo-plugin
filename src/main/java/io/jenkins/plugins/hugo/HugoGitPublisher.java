@@ -4,8 +4,8 @@ import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
-import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -64,11 +64,13 @@ public class HugoGitPublisher extends Recorder implements SimpleBuildStep {
     public void perform(@Nonnull Run<?, ?> run, @Nonnull FilePath workspace,
                         @Nonnull Launcher launcher, @Nonnull TaskListener listener)
             throws InterruptedException, IOException {
-        FilePath tmpPath = workspace.child("." + publishDir);
+        PrintStream logger = listener.getLogger();
+
+        FilePath tmpPath = workspace.createTempDir("hugo", "public");
+        logger.println("temp workspace is: " + tmpPath.getRemote());
 
         Git git = new Git(listener, null);
         GitClient client = git.in(tmpPath).getClient();
-        PrintStream logger = listener.getLogger();
 
         setCredential(client, credentialsId, logger);
 
@@ -76,6 +78,9 @@ public class HugoGitPublisher extends Recorder implements SimpleBuildStep {
         client.clone_().url(targetUrl).execute();
         client.checkoutBranch(publishBranch, "origin/" + publishBranch);
 
+        if(publishDir == null || "".equals(publishDir.trim())) {
+            publishDir = HugoBuilder.TEMP_PUBLIC;
+        }
         workspace.child(publishDir).copyRecursiveTo(tmpPath);
 
         if(getAuthorName() != null) {
@@ -93,6 +98,8 @@ public class HugoGitPublisher extends Recorder implements SimpleBuildStep {
 
         try {
             client.push().to(new URIish(targetUrl)).ref(publishBranch).force(true).execute();
+
+            logger.println(String.format("target git url is: %s", targetUrl));
         } catch (URISyntaxException e) {
             e.printStackTrace();
             run.setResult(Result.FAILURE);
@@ -105,9 +112,9 @@ public class HugoGitPublisher extends Recorder implements SimpleBuildStep {
             return;
         }
 
-        StandardUsernameCredentials credential = getCredential(logger);
+        StandardCredentials credential = getCredential(logger);
         if(credential != null) {
-            client.setCredentials(credential);
+            client.addDefaultCredentials(credential);
         } else {
             logger.println(String.format("Can not found credential by id [%s].", credentialId));
         }
@@ -131,16 +138,16 @@ public class HugoGitPublisher extends Recorder implements SimpleBuildStep {
         logger.println(String.format("Already switch to branch [%s].", targetBranch));
     }
 
-    private StandardUsernameCredentials getCredential(PrintStream logger) {
-        List<StandardUsernameCredentials> allCredentials = CredentialsProvider.lookupCredentials
-                (StandardUsernameCredentials.class, Jenkins.getActiveInstance(), ACL.SYSTEM, new ArrayList<>());
+    private StandardCredentials getCredential(PrintStream logger) {
+        List<StandardCredentials> allCredentials = CredentialsProvider.lookupCredentials
+                (StandardCredentials.class, Jenkins.getInstance(), ACL.SYSTEM, new ArrayList<>());
 
         Credentials credential = CredentialsMatchers.firstOrNull(
                 allCredentials, CredentialsMatchers.withId(getCredentialsId()));
 
         if(credential != null)
         {
-            return (StandardUsernameCredentials) credential;
+            return (StandardCredentials) credential;
         }
         else
         {
@@ -252,11 +259,11 @@ public class HugoGitPublisher extends Recorder implements SimpleBuildStep {
     public static final class DescriptorImpl extends BuildStepDescriptor<Publisher>
     {
         public ListBoxModel doFillCredentialsIdItems() {
-            FreeStyleProject project = new FreeStyleProject(Jenkins.getActiveInstance(),"fake-" + UUID.randomUUID().toString());
+            FreeStyleProject project = new FreeStyleProject(Jenkins.getInstance(),"fake-" + UUID.randomUUID().toString());
 
             return new StandardListBoxModel().includeEmptyValue()
                     .includeMatchingAs(ACL.SYSTEM, project,
-                            StandardUsernameCredentials.class,
+                            StandardCredentials.class,
                             new ArrayList<>(),
                             CredentialsMatchers.withScopes(CredentialsScope.GLOBAL));
         }
