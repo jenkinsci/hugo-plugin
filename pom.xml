@@ -10,7 +10,7 @@
 
     <groupId>io.jenkins.plugins</groupId>
     <artifactId>hugo</artifactId>
-    <version>${revision}${sha1}${changelist}</version>
+    <version>${revision}${changelist}</version>
 
     <packaging>hpi</packaging>
     <properties>
@@ -18,7 +18,6 @@
         <java.level>8</java.level>
         <revision>0.1.5</revision>
         <changelist>-SNAPSHOT</changelist>
-        <sha1 />
     </properties>
 
     <name>Hugo Plugin</name>
