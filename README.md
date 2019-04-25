@@ -17,3 +17,10 @@ hugo baseUrl: '', destination: '', hugoHome: '/usr/local/bin/'
 hugo baseUrl: 'https://surenpi.gitee.io/blog', destination: 'gitee', hugoHome: '/usr/local/bin/'
 
 ```
+
+# Users
+
+Here are part of who're using this plugin to build their Hugo site.
+
+* [LinuxSuRen' blog](https://github.com/linuxsuren/surenpi)
+* [Jenkins Community website](https://github.com/jenkins-zh/jenkins-zh)
