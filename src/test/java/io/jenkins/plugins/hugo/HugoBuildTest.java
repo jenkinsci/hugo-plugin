@@ -27,14 +27,6 @@ public class HugoBuildTest
     public JenkinsRule rule = new JenkinsRule();
 
     @Test
-    public void logs() throws Exception {
-        WorkflowJob p = rule.jenkins.createProject(WorkflowJob.class, "p");
-        p.setDefinition(new CpsFlowDefinition("node{env.abc=12;hugo}"));
-
-        rule.assertBuildStatusSuccess(p.scheduleBuild2(0));
-    }
-
-    @Test
     @Ignore
     public void build() throws Exception
     {
