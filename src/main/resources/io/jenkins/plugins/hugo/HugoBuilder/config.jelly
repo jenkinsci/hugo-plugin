@@ -11,6 +11,12 @@
       <f:entry title="${%Destination}" field="destination">
           <f:textbox />
       </f:entry>
+      <f:entry title="${%Environment}" field="environment">
+          <f:textbox />
+      </f:entry>
+      <f:entry title="${%Build Future}">
+          <f:checkbox name="buildFuture" field="buildFuture"/>
+      </f:entry>
       <f:entry title="${%Verbose}">
           <f:checkbox name="verbose" field="verbose"/>
       </f:entry>

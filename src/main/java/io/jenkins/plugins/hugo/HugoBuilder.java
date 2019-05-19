@@ -30,6 +30,8 @@ public class HugoBuilder extends Builder implements SimpleBuildStep
     private String hugoHome;
     private String baseUrl;
     private String destination;
+    private boolean buildFuture;
+    private String environment;
     private boolean verbose;
 
     @DataBoundConstructor
@@ -38,8 +40,7 @@ public class HugoBuilder extends Builder implements SimpleBuildStep
     @Override
     public void perform(@Nonnull Run<?, ?> run, @Nonnull FilePath workspace,
                         @Nonnull Launcher launcher, @Nonnull TaskListener listener)
-            throws InterruptedException, IOException
-    {
+            throws InterruptedException, IOException {
         if(hugoVersion(run, launcher, listener, workspace) == 0) {
             hugoBuild(run, launcher, listener, workspace);
         }
@@ -75,12 +76,11 @@ public class HugoBuilder extends Builder implements SimpleBuildStep
                           TaskListener listener, @Nonnull FilePath workspace)
             throws IOException, InterruptedException {
         PrintStream logger = listener.getLogger();
-        EnvVars env = run.getEnvironment(listener);
+        EnvVars envVars = run.getEnvironment(listener);
 
         String hugoCmd = buildCmd();
-
         int exitCode = launcher.launch().pwd(workspace)
-                .cmdAsSingleString(hugoCmd).envs(env).stdout(logger).stderr(logger).start().join();
+                .cmdAsSingleString(hugoCmd).envs(envVars).stdout(logger).stderr(logger).start().join();
         if(exitCode != 0) {
             listener.fatalError("Hugo build error, exit code: " + exitCode);
             run.setResult(Result.FAILURE);
@@ -96,8 +96,16 @@ public class HugoBuilder extends Builder implements SimpleBuildStep
             hugoCmd += " --destination " + destination;
         }
 
+        if(buildFuture) {
+            hugoCmd += " --buildFuture ";
+        }
+
         if(baseUrl != null && !"".equals(baseUrl.trim())) {
             hugoCmd += " --baseURL " + baseUrl;
+        }
+
+        if(StringUtils.isNotBlank(environment)) {
+            hugoCmd += " --environment " + environment;
         }
 
         if(verbose) {
@@ -107,8 +115,7 @@ public class HugoBuilder extends Builder implements SimpleBuildStep
         return hugoCmd;
     }
 
-    public String getHugoHome()
-    {
+    public String getHugoHome() {
         if(StringUtils.isBlank(hugoHome)) {
             return "";
         }
@@ -116,8 +123,7 @@ public class HugoBuilder extends Builder implements SimpleBuildStep
     }
 
     @DataBoundSetter
-    public void setHugoHome(String hugoHome)
-    {
+    public void setHugoHome(String hugoHome) {
         if(!StringUtils.isBlank(hugoHome)) {
             hugoHome = hugoHome.trim();
             if(!hugoHome.endsWith("/")) {
@@ -163,6 +169,24 @@ public class HugoBuilder extends Builder implements SimpleBuildStep
     @DataBoundSetter
     public void setDestination(String destination) {
         this.destination = destination;
+    }
+
+    public boolean isBuildFuture() {
+        return buildFuture;
+    }
+
+    @DataBoundSetter
+    public void setBuildFuture(boolean buildFuture) {
+        this.buildFuture = buildFuture;
+    }
+
+    public String getEnvironment() {
+        return environment;
+    }
+
+    @DataBoundSetter
+    public void setEnvironment(String environment) {
+        this.environment = environment;
     }
 
     public boolean isVerbose() {
