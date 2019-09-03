@@ -130,7 +130,7 @@
       </developer>
     </developers>
 
-    <url>https://wiki.jenkins.io/display/JENKINS/Hugo+Plugin</url>
+    <url>https://github.com/jenkinsci/hugo-plugin</url>
     <scm>
         <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
         <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
