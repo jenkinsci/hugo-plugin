@@ -33,6 +33,7 @@ public class HugoBuilder extends Builder implements SimpleBuildStep
     private boolean buildFuture;
     private String environment;
     private boolean verbose;
+    private String config;
 
     @DataBoundConstructor
     public HugoBuilder() {}
@@ -106,6 +107,10 @@ public class HugoBuilder extends Builder implements SimpleBuildStep
 
         if(StringUtils.isNotBlank(environment)) {
             hugoCmd += " --environment " + environment;
+        }        
+        
+        if(config != null && !"".equals(config.trim())) {
+            hugoCmd += " --config " + config; 
         }
 
         if(verbose) {
